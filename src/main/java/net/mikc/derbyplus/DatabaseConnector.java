@@ -48,12 +48,25 @@ public class DatabaseConnector {
                 case UPDATE_INSERT:
                     updateOrInsert(args[0]);
                     break;
+                case DESC_TABLE:
+                    descTable(args[0]);
+                    break;
                 default:
                     console.log("Unknown command: " + cmd);
 
             }
         } catch (Throwable e) {
             e.printStackTrace();
+        }
+    }
+
+    private void descTable(String table) throws SQLException {
+        final Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from "+table);
+        List<QueryColumnResultSchema> schema = fetchSchema(rs);
+        console.log("Table: "+table);
+        for(QueryColumnResultSchema column: schema) {
+            console.log("   "+column.getColumnName() + " " + column.getColumnType()+"("+column.getColumnPrecision()+")");
         }
     }
 
@@ -83,7 +96,7 @@ public class DatabaseConnector {
     private void updateOrInsert(String sqlStatement) throws SQLException {
         final Statement stmt = connection.createStatement();
         int rows = stmt.executeUpdate(sqlStatement);
-        console.log("Affected "+rows+" row(s).");
+        console.log("Affected " + rows + " row(s).");
     }
 
     private void select(String sqlStatement) throws SQLException {
@@ -135,7 +148,7 @@ public class DatabaseConnector {
         }
     }
 
-    private static String convertBlobToString(Blob blob){
+    private static String convertBlobToString(Blob blob) {
         return blob == null ? null : blob.toString();
     }
 

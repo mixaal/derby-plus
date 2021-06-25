@@ -34,9 +34,8 @@ public class Main {
                     connector.execute(DatabaseCommand.SHOW_TABLES);
                     read(connection, readline, prompt);
                 } else if (input.startsWith("connect")) {
-                    String []connectArgs = input.split("\\s+");
-                    if(connectArgs.length>1) {
-                        String jdbcUrl = connectArgs[1];
+                    String jdbcUrl = fetchArgument(input);
+                    if(jdbcUrl!=null) {
                         connector.execute(DatabaseCommand.CONNECT, jdbcUrl);
                     }
                     read(connection, readline, prompt);
@@ -46,11 +45,27 @@ public class Main {
                 } else if (input.startsWith("create")) {
                     connector.execute(DatabaseCommand.CREATE_TABLE, input);
                     read(connection, readline, prompt);
+                } else if (input.startsWith("desc")) {
+                    String tableName = fetchArgument(input);
+                    if(tableName!=null) {
+                        connector.execute(DatabaseCommand.DESC_TABLE, tableName);
+                    }
+                    read(connection, readline, prompt);
                 } else {
                     connector.execute(DatabaseCommand.UPDATE_INSERT, input);
                     read(connection, readline, prompt);
                 }
             }
         });
+    }
+
+    private static String fetchArgument(String input) {
+        String []connectArgs = input.split("\\s+");
+        if(connectArgs.length>1) {
+            String jdbcUrl = connectArgs[1];
+            return jdbcUrl;
+        }
+        console.log("Need argument");
+        return null;
     }
 }
