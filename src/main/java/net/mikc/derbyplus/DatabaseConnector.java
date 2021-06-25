@@ -42,6 +42,12 @@ public class DatabaseConnector {
                 case SELECT:
                     select(args[0]);
                     break;
+                case CREATE_TABLE:
+                    createTable(args[0]);
+                    break;
+                case UPDATE_INSERT:
+                    updateOrInsert(args[0]);
+                    break;
                 default:
                     console.log("Unknown command: " + cmd);
 
@@ -66,6 +72,18 @@ public class DatabaseConnector {
     private void getSchema() throws SQLException {
         String schema = connection.getSchema();
         console.log("Schema: " + schema);
+    }
+
+    private void createTable(String sqlStatement) throws SQLException {
+        final Statement stmt = connection.createStatement();
+        stmt.execute(sqlStatement);
+        console.log("Invoke `show tables` if the table is created");
+    }
+
+    private void updateOrInsert(String sqlStatement) throws SQLException {
+        final Statement stmt = connection.createStatement();
+        int rows = stmt.executeUpdate(sqlStatement);
+        console.log("Affected "+rows+" row(s).");
     }
 
     private void select(String sqlStatement) throws SQLException {

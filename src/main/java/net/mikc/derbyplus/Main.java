@@ -40,8 +40,14 @@ public class Main {
                         connector.execute(DatabaseCommand.CONNECT, jdbcUrl);
                     }
                     read(connection, readline, prompt);
-                } else {
+                } else if (input.startsWith("select")) {
                     connector.execute(DatabaseCommand.SELECT, input);
+                    read(connection, readline, prompt);
+                } else if (input.startsWith("create")) {
+                    connector.execute(DatabaseCommand.CREATE_TABLE, input);
+                    read(connection, readline, prompt);
+                } else {
+                    connector.execute(DatabaseCommand.UPDATE_INSERT, input);
                     read(connection, readline, prompt);
                 }
             }
