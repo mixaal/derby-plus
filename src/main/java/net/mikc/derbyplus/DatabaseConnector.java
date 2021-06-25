@@ -3,8 +3,8 @@ package net.mikc.derbyplus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import net.mikc.derbyplus.commands.DatabaseCommand;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
@@ -17,84 +17,87 @@ public class DatabaseConnector {
     private Connection connection;
     private String jdbcUrl;
     private final IConsoleLogger console;
+
     public DatabaseConnector(IConsoleLogger console) {
         this.console = console;
     }
 
-    public void connect(String jdbcUrl) {
-        try {
-            Class.forName(getDriver(jdbcUrl)).newInstance();
-            this.connection = DriverManager.getConnection(jdbcUrl);
-            this.jdbcUrl = jdbcUrl;
+    public void execute(DatabaseCommand cmd, String... args) {
+        if (!checkConnection(cmd)) return;
 
-            console.log("Connected to: "+jdbcUrl);
-        }
-        catch (Throwable t) {
-            t.printStackTrace();
-        }
-    }
-
-    public void exit() {
         try {
-            console.log("Closing connection to :"+jdbcUrl);
-            connection.close();
-        }
-        catch (Throwable t) {
-            t.printStackTrace();
-        }
-    }
+            switch (cmd) {
+                case CONNECT:
+                    connect(args[0]);
+                    break;
+                case EXIT:
+                    exit();
+                    break;
+                case SHOW_TABLES:
+                    showTables();
+                    break;
+                case GET_SCHEMA:
+                    getSchema();
+                    break;
+                case SELECT:
+                    select(args[0]);
+                    break;
+                default:
+                    console.log("Unknown command: " + cmd);
 
-    public void getSchema() {
-        try {
-            String schema = connection.getSchema();
-            console.log("Schema: " + schema);
-        }
-        catch (Throwable t) {
-            t.printStackTrace();
-        }
-    }
-
-    public void sqlCommand(String sqlStatement) {
-        try {
-            final Statement stmt = connection.createStatement();
-            console.log("Executing: |"+sqlStatement+"|");
-            final java.sql.ResultSet rs = stmt.executeQuery(sqlStatement);
-            List<QueryColumnResultSchema> schema = fetchSchema(rs);
-            while (rs.next()) {
-                List<String> row = new ArrayList<>();
-                for (int i = 0; i < schema.size(); i++) {
-                    String columnName = schema.get(i).getColumnName();
-                    String columnType = schema.get(i).getColumnType();
-                    String value = getValue(rs, columnName, columnType);
-                    row.add(value);
-                }
-                console.log(row.toString());
             }
-            rs.close();
-            stmt.close();
-
-        }
-        catch (Throwable t) {
-            t.printStackTrace();
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
     }
 
-    public void showTables() {
-        try {
-            DatabaseMetaData metaData = connection.getMetaData();
-            String[] types = {"TABLE"};
-            //Retrieving the columns in the database
-            ResultSet tables = metaData.getTables(null, null, "%", types);
-            while (tables.next()) {
-                console.log(tables.getString("TABLE_NAME"));
+    private void connect(String jdbcUrl) throws ClassNotFoundException, InstantiationException, IllegalAccessException, SQLException {
+        Class.forName(getDriver(jdbcUrl)).newInstance();
+        this.connection = DriverManager.getConnection(jdbcUrl);
+        this.jdbcUrl = jdbcUrl;
+        console.log("Connected to: " + jdbcUrl);
+    }
+
+    private void exit() throws SQLException {
+        console.log("Closing connection to :" + jdbcUrl);
+        connection.close();
+    }
+
+    private void getSchema() throws SQLException {
+        String schema = connection.getSchema();
+        console.log("Schema: " + schema);
+    }
+
+    private void select(String sqlStatement) throws SQLException {
+        final Statement stmt = connection.createStatement();
+        console.log("Executing: |" + sqlStatement + "|");
+        final java.sql.ResultSet rs = stmt.executeQuery(sqlStatement);
+        List<QueryColumnResultSchema> schema = fetchSchema(rs);
+        while (rs.next()) {
+            List<String> row = new ArrayList<>();
+            for (QueryColumnResultSchema queryColumnResultSchema : schema) {
+                String columnName = queryColumnResultSchema.getColumnName();
+                String columnType = queryColumnResultSchema.getColumnType();
+                String value = getValue(rs, columnName, columnType);
+                row.add(value);
             }
+            console.log(row.toString());
         }
-        catch(Throwable t) {
-            t.printStackTrace();
+        rs.close();
+        stmt.close();
+    }
+
+    private void showTables() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        String[] types = {"TABLE"};
+        //Retrieving the columns in the database
+        ResultSet tables = metaData.getTables(null, null, "%", types);
+        while (tables.next()) {
+            console.log(tables.getString("TABLE_NAME"));
         }
     }
 
-    private static String getValue(ResultSet rs, String columnName, String columnType) throws SQLException, IOException {
+    private static String getValue(ResultSet rs, String columnName, String columnType) throws SQLException {
         switch (columnType) {
             case "INTEGER":
                 return String.valueOf(rs.getInt(columnName));
@@ -114,17 +117,18 @@ public class DatabaseConnector {
         }
     }
 
-    private static String convertBlobToString(Blob blob) throws SQLException, IOException {
+    private static String convertBlobToString(Blob blob){
         return blob == null ? null : blob.toString();
     }
-    private static String convertClobToString(Clob clob) throws SQLException, IOException {
-        StringBuffer buffer = new StringBuffer();
+
+    private static String convertClobToString(Clob clob) {
+//        StringBuffer buffer = new StringBuffer();
 //        int ch;
 //        while ((ch = clob.getCharacterStream().read())!=-1) {
 //            buffer.append(""+(char)ch);
 //        }
 //        return buffer.toString();
-        return  clob==null ? null : clob.toString();
+        return clob == null ? null : clob.toString();
     }
 
     private List<QueryColumnResultSchema> fetchSchema(ResultSet rs) throws SQLException {
@@ -149,6 +153,15 @@ public class DatabaseConnector {
             );
         }
         return schema;
+    }
+
+    private boolean checkConnection(DatabaseCommand cmd) {
+        if (DatabaseCommand.CONNECT.equals(cmd)) return true;
+        if (connection == null) {
+            console.log("Not logged in, you must use `connect jdbcUrl`");
+            return false;
+        }
+        return true;
     }
 
     private static String getDriver(String jdbcUri) {

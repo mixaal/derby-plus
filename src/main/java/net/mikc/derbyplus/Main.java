@@ -1,5 +1,6 @@
 package net.mikc.derbyplus;
 
+import net.mikc.derbyplus.commands.DatabaseCommand;
 import org.aesh.readline.Readline;
 import org.aesh.readline.tty.terminal.TerminalConnection;
 
@@ -24,25 +25,23 @@ public class Main {
             if(input != null) {
                 derbyReadline.append(input);
                 if (input.equals("exit")) {
-                    connector.exit();
+                    connector.execute(DatabaseCommand.EXIT);
                     connection.close();
                 } else if (input.startsWith("get schema")) {
-                    connector.getSchema();
+                    connector.execute(DatabaseCommand.GET_SCHEMA);
                     read(connection, readline, prompt);
                 } else if (input.startsWith("show tables")) {
-                    connector.showTables();
+                    connector.execute(DatabaseCommand.SHOW_TABLES);
                     read(connection, readline, prompt);
                 } else if (input.startsWith("connect")) {
                     String []connectArgs = input.split("\\s+");
                     if(connectArgs.length>1) {
                         String jdbcUrl = connectArgs[1];
-                        connector.connect(jdbcUrl);
+                        connector.execute(DatabaseCommand.CONNECT, jdbcUrl);
                     }
-
                     read(connection, readline, prompt);
                 } else {
-//                    connection.write("=====> " + input + "\n");
-                    connector.sqlCommand(input);
+                    connector.execute(DatabaseCommand.SELECT, input);
                     read(connection, readline, prompt);
                 }
             }
