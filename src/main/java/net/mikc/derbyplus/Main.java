@@ -27,6 +27,9 @@ public class Main {
                 if (input.equals("exit")) {
                     connector.execute(DatabaseCommand.EXIT);
                     connection.close();
+                } else if (input.startsWith("help")) {
+                    connector.execute(DatabaseCommand.HELP);
+                    read(connection, readline, prompt);
                 } else if (input.startsWith("get schema")) {
                     connector.execute(DatabaseCommand.GET_SCHEMA);
                     read(connection, readline, prompt);
@@ -65,7 +68,7 @@ public class Main {
             String jdbcUrl = connectArgs[1];
             return jdbcUrl;
         }
-        console.log("Need argument");
+        console.log("Need 1 argument");
         return null;
     }
 }

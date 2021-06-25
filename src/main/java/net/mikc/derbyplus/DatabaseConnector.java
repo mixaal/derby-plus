@@ -27,8 +27,13 @@ public class DatabaseConnector {
 
         try {
             switch (cmd) {
+                case HELP:
+                    help();
+                    break;
                 case CONNECT:
-                    connect(args[0]);
+                    if(checkNumberOfArguments(1, args)) {
+                        connect(args[0]);
+                    }
                     break;
                 case EXIT:
                     exit();
@@ -40,16 +45,24 @@ public class DatabaseConnector {
                     getSchema();
                     break;
                 case SELECT:
-                    select(args[0]);
+                    if(checkNumberOfArguments(1, args)) {
+                        select(args[0]);
+                    }
                     break;
                 case CREATE_TABLE:
-                    createTable(args[0]);
+                    if(checkNumberOfArguments(1, args)) {
+                        createTable(args[0]);
+                    }
                     break;
                 case UPDATE_INSERT:
-                    updateOrInsert(args[0]);
+                    if(checkNumberOfArguments(1, args)) {
+                        updateOrInsert(args[0]);
+                    }
                     break;
                 case DESC_TABLE:
-                    descTable(args[0]);
+                    if(checkNumberOfArguments(1, args)) {
+                        descTable(args[0]);
+                    }
                     break;
                 default:
                     console.log("Unknown command: " + cmd);
@@ -58,6 +71,10 @@ public class DatabaseConnector {
         } catch (Throwable e) {
             e.printStackTrace();
         }
+    }
+
+    private void help() {
+        console.log(HELP_MESSAGE);
     }
 
     private void descTable(String table) throws SQLException {
@@ -187,12 +204,18 @@ public class DatabaseConnector {
     }
 
     private boolean checkConnection(DatabaseCommand cmd) {
-        if (DatabaseCommand.CONNECT.equals(cmd)) return true;
+        if (DatabaseCommand.CONNECT.equals(cmd) || DatabaseCommand.HELP.equals(cmd)) return true;
         if (connection == null) {
             console.log("Not logged in, you must use `connect jdbcUrl`");
             return false;
         }
         return true;
+    }
+
+    private boolean checkNumberOfArguments(int argNo, String ... args) {
+        if(args!=null && args.length >= argNo) return true;
+        console.log("Insufficient number of arguments, need: "+argNo);
+        return false;
     }
 
     private static String getDriver(String jdbcUri) {
@@ -214,4 +237,16 @@ public class DatabaseConnector {
         private BigDecimal columnPrecision;
         private BigDecimal columnScale;
     }
+
+    private static final String HELP_MESSAGE="Shell commands:\n" +
+            "connect - connect to database, example: connect jdbc:derby:/home/mikc/git/derbyDB;user=admin;databaseName=testdb\n" +
+            "create table: create table customers (ID INT NOT NULL, NAME VARCHAR (20) NOT NULL, PRIMARY KEY (ID))\n" +
+            "show tables - show tables in current schema\n" +
+            "select - query tables, example: select * from customers\n" +
+            "insert - insert values into table, example: insert values into customers (1, 'mix')\n" +
+            "update - update table, example: update customers set name='mixaal'\n" +
+            "drop - delete table, example: drop table customers2\n" +
+            "delete - delete data from table, example: delete from table customers where name='mix'\n" +
+            "desc - describe table metadata, example: desc customers\n" +
+            "exit - exit from shell\n";
 }
